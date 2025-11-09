@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gitlab.ozon.dev/16/students/week-1-workshop/internal/domain/model"
-	http2 "gitlab.ozon.dev/16/students/week-1-workshop/pkg/http"
+	"github.com/jva44ka/ozon-simulator-go-cart/internal/domain/model"
+	http2 "github.com/jva44ka/ozon-simulator-go-cart/pkg/http"
 	"net/http"
 	"strconv"
 )
@@ -22,7 +22,7 @@ func NewGetReviewsBySkuHandler(reviewService ReviewService) *GetReviewsBySkuHand
 	return &GetReviewsBySkuHandler{reviewService: reviewService}
 }
 
-func (h GetReviewsBySkuHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *GetReviewsBySkuHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	skuRaw := r.PathValue("sku")
 	sku, err := strconv.Atoi(skuRaw)
 	if err != nil {

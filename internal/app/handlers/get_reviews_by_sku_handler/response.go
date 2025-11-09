@@ -8,5 +8,5 @@ type GetReviewsReviewResponse struct {
 }
 
 type GetReviewsResponse struct {
-	Reviews []GetReviewsReviewResponse `json:"reviews"`
+	Reviews []GetReviewsReviewResponse `json:"cart_items"`
 }

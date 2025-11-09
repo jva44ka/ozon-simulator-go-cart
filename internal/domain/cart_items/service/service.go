@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"gitlab.ozon.dev/16/students/week-1-workshop/internal/domain/model"
+	"github.com/jva44ka/ozon-simulator-go-cart/internal/domain/model"
 )
 
 type ReviewRepository interface {
