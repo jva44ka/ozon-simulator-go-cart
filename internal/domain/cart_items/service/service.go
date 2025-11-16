@@ -4,56 +4,72 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/jva44ka/ozon-simulator-go-cart/internal/domain/model"
 )
 
-type ReviewRepository interface {
-	CreateReview(_ context.Context, review model.Review) (model.Review, error)
-	GetReviewsBySku(_ context.Context, sku model.Sku) ([]model.Review, error)
+type CartRepository interface {
+	AddCartItem(_ context.Context, cartItem model.CartItem) error
+	//RemoveCartItem(_ context.Context, product model.CartItem) error
+	GetCartItemsByUserId(_ context.Context, userId uuid.UUID) ([]model.CartItem, error)
 }
 
 type ProductService interface {
-	GetProductBySku(ctx context.Context, sku model.Sku) (*model.Product, error)
+	GetProductBySku(ctx context.Context, sku uint64) (*model.Product, error)
 }
 
-type ReviewService struct {
-	reviewRepository ReviewRepository
-	productService   ProductService
+type CartService struct {
+	cartRepository CartRepository
+	productService ProductService
 }
 
-func NewReviewService(reviewRepository ReviewRepository, productService ProductService) *ReviewService {
-	return &ReviewService{reviewRepository: reviewRepository, productService: productService}
+func NewCartService(cartRepository CartRepository, productService ProductService) *CartService {
+	return &CartService{cartRepository: cartRepository, productService: productService}
 }
 
-func (s *ReviewService) AddReview(ctx context.Context, review model.Review) (model.Review, error) {
-	if review.Sku < 1 || review.UserID == uuid.Nil {
-		return model.Review{}, errors.New("sku and user_id must be passed")
+func (s *CartService) AddProduct(ctx context.Context, userId uuid.UUID, sku uint64, count uint32) error {
+	if sku < 1 {
+		return errors.New("sku must be greater than zero")
 	}
 
-	_, err := s.productService.GetProductBySku(ctx, review.Sku)
+	if userId == uuid.Nil {
+		return errors.New("user_id must be not nil")
+	}
+
+	if count < 1 {
+		return errors.New("count must be greater than zero")
+	}
+
+	_, err := s.productService.GetProductBySku(ctx, sku)
 	if err != nil {
 		if errors.Is(err, model.ErrProductNotFound) {
-			return model.Review{}, fmt.Errorf("productService.GetProductBySku: %w", err)
+			return fmt.Errorf("productService.GetProductBySku: %w", err)
 		}
 
-		return model.Review{}, err
+		return err
 	}
 
-	newReview, err := s.reviewRepository.CreateReview(ctx, review)
+	cartItem := model.CartItem{
+		UserId: userId,
+		SkuId:  sku,
+		Count:  count,
+	}
+
+	err = s.cartRepository.AddCartItem(ctx, cartItem)
 	if err != nil {
-		return model.Review{}, fmt.Errorf("reviewRepository.CreateReview :%w", err)
+		return fmt.Errorf("cartRepository.AddCartItem :%w", err)
 	}
 
-	return newReview, nil
+	return nil
 }
 
-func (s *ReviewService) GetReviewsBySku(ctx context.Context, sku model.Sku) ([]model.Review, error) {
-	if sku < 1 {
-		return nil, errors.New("sku must be passed")
+func (s *CartService) GetItemsByUserId(ctx context.Context, userId uuid.UUID) ([]model.CartItem, error) {
+	if userId == uuid.Nil {
+		return nil, errors.New("userId must be not Nil")
 	}
 
-	reviews, err := s.reviewRepository.GetReviewsBySku(ctx, sku)
+	reviews, err := s.cartRepository.GetCartItemsByUserId(ctx, userId)
 	if err != nil {
 		return nil, fmt.Errorf("reviewRepository.GetReviewsBySku :%w", err)
 	}

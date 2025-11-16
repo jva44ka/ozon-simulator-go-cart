@@ -5,15 +5,17 @@ import (
 	"net"
 	"net/http"
 
-	_ "github.com/jva44ka/ozon-simulator-go-products/docs"
+	_ "github.com/jva44ka/ozon-simulator-go-cart/docs"
+	"github.com/jva44ka/ozon-simulator-go-cart/internal/app/handlers/add_products_to_cart_handler"
+	"github.com/jva44ka/ozon-simulator-go-cart/internal/app/handlers/get_cart_items_by_user_id_handler"
 	httpSwagger "github.com/swaggo/http-swagger"
 
-	"github.com/jva44ka/ozon-simulator-go-products/internal/app/handlers/get_product_by_sku_handler"
-	"github.com/jva44ka/ozon-simulator-go-products/internal/domain/repository"
-	"github.com/jva44ka/ozon-simulator-go-products/internal/domain/service"
-	"github.com/jva44ka/ozon-simulator-go-products/internal/infra/config"
-	"github.com/jva44ka/ozon-simulator-go-products/internal/infra/http/middlewares"
-	"github.com/jva44ka/ozon-simulator-go-products/internal/infra/http/round_trippers"
+	cartItemsRepositoryPkg "github.com/jva44ka/ozon-simulator-go-cart/internal/domain/cart_items/repository"
+	cartItemsServicePkg "github.com/jva44ka/ozon-simulator-go-cart/internal/domain/cart_items/service"
+	productsServicePkg "github.com/jva44ka/ozon-simulator-go-cart/internal/domain/products/service"
+	"github.com/jva44ka/ozon-simulator-go-cart/internal/infra/config"
+	"github.com/jva44ka/ozon-simulator-go-cart/internal/infra/http/middlewares"
+	"github.com/jva44ka/ozon-simulator-go-cart/internal/infra/http/round_trippers"
 )
 
 type App struct {
@@ -47,15 +49,24 @@ func (app *App) ListenAndServe() error {
 	return app.server.Serve(l)
 }
 
-func boostrapHandler(_ *config.Config) http.Handler {
+func boostrapHandler(config *config.Config) http.Handler {
 	tr := http.DefaultTransport
 	tr = round_trippers.NewTimerRoundTipper(tr)
 
-	productRepository := repository.NewProductRepository(100)
-	productService := service.NewProductService(productRepository)
+	client := http.Client{Transport: tr}
+
+	productService := productsServicePkg.NewProductService(
+		client,
+		config.Products.Token,
+		fmt.Sprintf("%s://%s:%s", config.Products.Schema, config.Products.Host, config.Products.Port),
+	)
+
+	cartRepository := cartItemsRepositoryPkg.NewCartItemRepository(100)
+	cartService := cartItemsServicePkg.NewCartService(cartRepository, productService)
 
 	mx := http.NewServeMux()
-	mx.Handle("GET /products/{sku}", get_product_by_sku_handler.NewGetProductsBySkuHandler(productService))
+	mx.Handle("GET /user/{user_id}/cart", get_cart_items_by_user_id_handler.NewGetCartItemsByUserIdHandler(cartService))
+	mx.Handle("POST /user/{user_id}/cart/{sku_id}", add_products_to_cart_handler.NewAddProductsToCartHandler(cartService))
 	mx.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	middleware := middlewares.NewTimerMiddleware(mx)

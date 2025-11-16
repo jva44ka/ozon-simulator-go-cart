@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	app2 "github.com/jva44ka/ozon-simulator-go-products/internal/app"
+	app2 "github.com/jva44ka/ozon-simulator-go-cart/internal/app"
 )
 
 func main() {

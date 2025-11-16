@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jva44ka/ozon-simulator-go-cart/internal/domain/model"
 	"net/http"
+
+	"github.com/jva44ka/ozon-simulator-go-cart/internal/domain/model"
 )
 
 const HeaderXApiKey = "X-API-KEY"
@@ -27,7 +28,7 @@ func NewProductService(client http.Client,
 	}
 }
 
-func (s *ProductService) GetProductBySku(ctx context.Context, sku model.Sku) (*model.Product, error) {
+func (s *ProductService) GetProductBySku(ctx context.Context, sku uint64) (*model.Product, error) {
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodGet,

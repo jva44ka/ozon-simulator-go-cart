@@ -2,39 +2,57 @@ package repository
 
 import (
 	"context"
-	"github.com/google/uuid"
-	"github.com/jva44ka/ozon-simulator-go-cart/internal/domain/model"
 	"sync"
 	"sync/atomic"
+
+	"github.com/google/uuid"
+	"github.com/jva44ka/ozon-simulator-go-cart/internal/domain/model"
 )
 
 type InMemoryCartItemRepository struct {
-	storage map[uuid.UUID][]model.CartItem
-	mx      sync.RWMutex
+	storage []model.CartItem
+	mutex   sync.RWMutex
 
 	idFactory atomic.Uint64
 }
 
 func NewCartItemRepository(cap int) *InMemoryCartItemRepository {
 	return &InMemoryCartItemRepository{
-		storage: make(map[uuid.UUID][]model.CartItem, cap),
+		storage: make([]model.CartItem, cap),
 	}
 }
 
-func (r *InMemoryCartItemRepository) AddProduct(ctx context.Context, userId uuid.UUID, sku uint64, count uint32) error {
-	reviewID := r.idFactory.Add(1)
-	review.ID = model.ReviewID(reviewID)
+func (r *InMemoryCartItemRepository) AddCartItem(_ context.Context, cartItem model.CartItem) error {
+	cartItemId := r.idFactory.Add(1)
+	cartItem.Id = cartItemId
 
-	r.mx.Lock()
-	defer r.mx.Unlock()
-	r.storage[review.Sku] = append(r.storage[review.Sku], review)
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
-	return review, nil
+	for _, storageItem := range r.storage {
+		if storageItem.SkuId == cartItem.SkuId && storageItem.UserId == cartItem.UserId {
+			storageItem.Count = storageItem.Count + cartItem.Count
+
+			return nil
+		}
+	}
+
+	r.storage = append(r.storage, cartItem)
+
+	return nil
 }
 
-func (r *InMemoryCartItemRepository) GetCartItemsByUserId(_ context.Context, sku model.Sku) ([]model.Review, error) {
-	r.mx.RLock()
-	defer r.mx.RUnlock()
+func (r *InMemoryCartItemRepository) GetCartItemsByUserId(_ context.Context, userId uuid.UUID) ([]model.CartItem, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
 
-	return r.storage[sku], nil
+	result := make([]model.CartItem, 0, len(r.storage))
+
+	for _, storageItem := range r.storage {
+		if storageItem.UserId == userId {
+			result = append(result, storageItem)
+		}
+	}
+
+	return result, nil
 }
