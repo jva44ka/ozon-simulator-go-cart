@@ -11,7 +11,6 @@ import (
 
 type CartRepository interface {
 	AddCartItem(_ context.Context, cartItem model.CartItem) error
-	//RemoveCartItem(_ context.Context, product model.CartItem) error
 	GetCartItemsByUserId(_ context.Context, userId uuid.UUID) ([]model.CartItem, error)
 }
 
@@ -71,7 +70,7 @@ func (s *CartService) GetItemsByUserId(ctx context.Context, userId uuid.UUID) ([
 
 	reviews, err := s.cartRepository.GetCartItemsByUserId(ctx, userId)
 	if err != nil {
-		return nil, fmt.Errorf("reviewRepository.GetReviewsBySku :%w", err)
+		return nil, fmt.Errorf("cartRepository.GetCartItemsByUserId :%w", err)
 	}
 
 	return reviews, nil

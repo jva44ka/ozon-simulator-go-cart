@@ -31,7 +31,7 @@ func (r *InMemoryCartItemRepository) AddCartItem(_ context.Context, cartItem mod
 
 	for _, storageItem := range r.storage {
 		if storageItem.SkuId == cartItem.SkuId && storageItem.UserId == cartItem.UserId {
-			storageItem.Count = storageItem.Count + cartItem.Count
+			storageItem.Count += cartItem.Count
 
 			return nil
 		}
