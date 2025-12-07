@@ -11,7 +11,9 @@ import (
 
 type CartRepository interface {
 	AddCartItem(_ context.Context, cartItem model.CartItem) (*model.CartItem, error)
+	UpdateCartItem(_ context.Context, id uint64, cartItem model.CartItem) (*model.CartItem, error)
 	GetCartItemsByUserId(_ context.Context, userId uuid.UUID) ([]model.CartItem, error)
+	GetCartItem(_ context.Context, userId uuid.UUID, sku uint64) (*model.CartItem, error)
 	RemoveCartItem(_ context.Context, userId uuid.UUID, sku uint64) error
 	RemoveAllCartItemsByUserId(_ context.Context, userId uuid.UUID) error
 }
@@ -42,7 +44,21 @@ func (s *CartService) AddProduct(ctx context.Context, userId uuid.UUID, sku uint
 		return errors.New("count must be greater than zero")
 	}
 
-	_, err := s.productService.GetProductBySku(ctx, sku)
+	// TODO: refactor this
+	existingCartItem, err := s.cartRepository.GetCartItem(ctx, userId, sku)
+	if err != nil && !errors.Is(err, model.ErrCartItemsNotFound) {
+		return fmt.Errorf("cartRepository.GetCartItem: %w", err)
+	}
+	if existingCartItem != nil {
+		resultCount := existingCartItem.Count + count
+		_, err = s.cartRepository.UpdateCartItem(ctx, existingCartItem.Id, model.CartItem{
+			Count: resultCount,
+		})
+
+		return nil
+	}
+
+	_, err = s.productService.GetProductBySku(ctx, sku)
 	if err != nil {
 		if errors.Is(err, model.ErrProductNotFound) {
 			return fmt.Errorf("productService.GetProductBySku: %w", err)

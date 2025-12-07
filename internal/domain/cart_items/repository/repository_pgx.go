@@ -30,7 +30,7 @@ func (r *PgxCartItemRepository) GetCartItemsByUserId(ctx context.Context, userId
 	const query = `
 SELECT id, sku_id, user_id, count 
 FROM cart_items 
-WHERE user_id = $1;
+WHERE user_id = $1
 ORDER BY id DESC`
 
 	rows, err := r.pool.Query(ctx, query, userId)
@@ -72,6 +72,39 @@ ORDER BY id DESC`
 	return result, nil
 }
 
+func (r *PgxCartItemRepository) GetCartItem(ctx context.Context, userId uuid.UUID, sku uint64) (*model.CartItem, error) {
+	const query = `
+SELECT 
+    id, sku_id, user_id, count 
+FROM 
+    cart_items 
+WHERE 
+    user_id = $1
+    AND sku_id = $2`
+
+	row := r.pool.QueryRow(ctx, query, userId, sku)
+
+	var productRow = CartItemRow{}
+
+	err := row.Scan(&productRow.Id, &productRow.SkuId, &productRow.UserId, &productRow.Count)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, model.ErrCartItemsNotFound
+		}
+		return nil, fmt.Errorf("PgxCartItemRepository.GetCartItem: %w", err)
+	}
+
+	// Преобразуем типы в модель приложения
+	result := &model.CartItem{
+		Id:     productRow.Id,
+		SkuId:  productRow.SkuId,
+		UserId: productRow.UserId,
+		Count:  productRow.Count,
+	}
+
+	return result, nil
+}
+
 func (r *PgxCartItemRepository) AddCartItem(ctx context.Context, cartItem model.CartItem) (*model.CartItem, error) {
 	const query = `
 INSERT INTO 
@@ -91,6 +124,33 @@ RETURNING
 
 	result := model.CartItem{
 		Id:     uint64(id),
+		SkuId:  cartItem.SkuId,
+		UserId: cartItem.UserId,
+		Count:  cartItem.Count,
+	}
+
+	return &result, nil
+}
+
+func (r *PgxCartItemRepository) UpdateCartItem(ctx context.Context, id uint64, cartItem model.CartItem) (*model.CartItem, error) {
+	const query = `
+UPDATE 
+    cart_items
+SET
+	count = $2
+WHERE 
+    id = $1`
+
+	err := pgx.BeginTxFunc(ctx, r.pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, query, int64(id), cartItem.Count)
+		return err
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert cart item: %w", err)
+	}
+
+	result := model.CartItem{
+		Id:     id,
 		SkuId:  cartItem.SkuId,
 		UserId: cartItem.UserId,
 		Count:  cartItem.Count,
