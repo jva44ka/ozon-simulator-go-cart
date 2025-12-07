@@ -1,10 +1,12 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jva44ka/ozon-simulator-go-cart/docs"
 	"github.com/jva44ka/ozon-simulator-go-cart/internal/app/handlers/add_products_to_cart_handler"
 	"github.com/jva44ka/ozon-simulator-go-cart/internal/app/handlers/get_cart_items_by_user_id_handler"
@@ -33,7 +35,10 @@ func NewApp(configPath string) (*App, error) {
 		config: configImpl,
 	}
 
-	app.server.Handler = boostrapHandler(configImpl)
+	app.server.Handler, err = boostrapHandler(configImpl)
+	if err != nil {
+		return nil, fmt.Errorf("boostrapHandler: %w", err)
+	}
 
 	return app, nil
 }
@@ -49,7 +54,7 @@ func (app *App) ListenAndServe() error {
 	return app.server.Serve(l)
 }
 
-func boostrapHandler(config *config.Config) http.Handler {
+func boostrapHandler(config *config.Config) (http.Handler, error) {
 	tr := http.DefaultTransport
 	tr = round_trippers.NewTimerRoundTipper(tr)
 
@@ -61,7 +66,19 @@ func boostrapHandler(config *config.Config) http.Handler {
 		fmt.Sprintf("%s://%s:%s", config.Products.Schema, config.Products.Host, config.Products.Port),
 	)
 
-	cartRepository := cartItemsRepositoryPkg.NewCartItemRepository(100)
+	pool, err := pgxpool.New(context.Background(), fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s",
+		config.Database.User,
+		config.Database.Password,
+		config.Database.Host,
+		config.Database.Port,
+		config.Database.Name,
+	))
+	if err != nil {
+		return nil, fmt.Errorf("pgxpool.New: %w", err)
+	}
+
+	cartRepository := cartItemsRepositoryPkg.NewPgxCartItemRepository(pool)
 	cartService := cartItemsServicePkg.NewCartService(cartRepository, productService)
 
 	mx := http.NewServeMux()
@@ -71,5 +88,5 @@ func boostrapHandler(config *config.Config) http.Handler {
 
 	middleware := middlewares.NewTimerMiddleware(mx)
 
-	return middleware
+	return middleware, nil
 }

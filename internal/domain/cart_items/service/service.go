@@ -10,7 +10,7 @@ import (
 )
 
 type CartRepository interface {
-	AddCartItem(_ context.Context, cartItem model.CartItem) error
+	AddCartItem(_ context.Context, cartItem model.CartItem) (*model.CartItem, error)
 	GetCartItemsByUserId(_ context.Context, userId uuid.UUID) ([]model.CartItem, error)
 }
 
@@ -55,7 +55,7 @@ func (s *CartService) AddProduct(ctx context.Context, userId uuid.UUID, sku uint
 		Count:  count,
 	}
 
-	err = s.cartRepository.AddCartItem(ctx, cartItem)
+	_, err = s.cartRepository.AddCartItem(ctx, cartItem)
 	if err != nil {
 		return fmt.Errorf("cartRepository.AddCartItem :%w", err)
 	}
