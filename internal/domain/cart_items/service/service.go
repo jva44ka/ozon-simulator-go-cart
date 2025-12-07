@@ -13,6 +13,7 @@ type CartRepository interface {
 	AddCartItem(_ context.Context, cartItem model.CartItem) (*model.CartItem, error)
 	GetCartItemsByUserId(_ context.Context, userId uuid.UUID) ([]model.CartItem, error)
 	RemoveCartItem(_ context.Context, userId uuid.UUID, sku uint64) error
+	RemoveAllCartItemsByUserId(_ context.Context, userId uuid.UUID) error
 }
 
 type ProductService interface {
@@ -75,7 +76,20 @@ func (s *CartService) RemoveProduct(ctx context.Context, userId uuid.UUID, sku u
 
 	err := s.cartRepository.RemoveCartItem(ctx, userId, sku)
 	if err != nil {
-		return fmt.Errorf("cartRepository.AddCartItem :%w", err)
+		return fmt.Errorf("cartRepository.RemoveProduct :%w", err)
+	}
+
+	return nil
+}
+
+func (s *CartService) RemoveAllProducts(ctx context.Context, userId uuid.UUID) error {
+	if userId == uuid.Nil {
+		return errors.New("user_id must be not nil")
+	}
+
+	err := s.cartRepository.RemoveAllCartItemsByUserId(ctx, userId)
+	if err != nil {
+		return fmt.Errorf("cartRepository.RemoveAllCartItemsByUserId :%w", err)
 	}
 
 	return nil

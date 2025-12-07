@@ -30,7 +30,8 @@ func (r *PgxCartItemRepository) GetCartItemsByUserId(ctx context.Context, userId
 	const query = `
 SELECT id, sku_id, user_id, count 
 FROM cart_items 
-WHERE user_id = $1;`
+WHERE user_id = $1;
+ORDER BY id DESC`
 
 	rows, err := r.pool.Query(ctx, query, userId)
 	if err != nil {
@@ -111,7 +112,25 @@ WHERE
 		return err
 	})
 	if err != nil {
-		return fmt.Errorf("failed to insert cart item: %w", err)
+		return fmt.Errorf("failed to delete cart item: %w", err)
+	}
+
+	return nil
+}
+
+func (r *PgxCartItemRepository) RemoveAllCartItemsByUserId(ctx context.Context, userId uuid.UUID) error {
+	const query = `
+DELETE FROM
+    cart_items
+WHERE 
+    user_id = $1;`
+
+	err := pgx.BeginTxFunc(ctx, r.pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, query, userId)
+		return err
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete all cart items by user id: %w", err)
 	}
 
 	return nil
