@@ -12,6 +12,7 @@ import (
 type CartRepository interface {
 	AddCartItem(_ context.Context, cartItem model.CartItem) (*model.CartItem, error)
 	GetCartItemsByUserId(_ context.Context, userId uuid.UUID) ([]model.CartItem, error)
+	RemoveCartItem(_ context.Context, userId uuid.UUID, sku uint64) error
 }
 
 type ProductService interface {
@@ -56,6 +57,23 @@ func (s *CartService) AddProduct(ctx context.Context, userId uuid.UUID, sku uint
 	}
 
 	_, err = s.cartRepository.AddCartItem(ctx, cartItem)
+	if err != nil {
+		return fmt.Errorf("cartRepository.AddCartItem :%w", err)
+	}
+
+	return nil
+}
+
+func (s *CartService) RemoveProduct(ctx context.Context, userId uuid.UUID, sku uint64) error {
+	if sku < 1 {
+		return errors.New("sku must be greater than zero")
+	}
+
+	if userId == uuid.Nil {
+		return errors.New("user_id must be not nil")
+	}
+
+	err := s.cartRepository.RemoveCartItem(ctx, userId, sku)
 	if err != nil {
 		return fmt.Errorf("cartRepository.AddCartItem :%w", err)
 	}

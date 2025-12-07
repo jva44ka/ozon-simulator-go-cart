@@ -1,0 +1,3 @@
+package remove_products_from_cart_handler
+
+type RemoveProductsFromCartResponse struct{}

@@ -10,6 +10,7 @@ import (
 	_ "github.com/jva44ka/ozon-simulator-go-cart/docs"
 	"github.com/jva44ka/ozon-simulator-go-cart/internal/app/handlers/add_products_to_cart_handler"
 	"github.com/jva44ka/ozon-simulator-go-cart/internal/app/handlers/get_cart_items_by_user_id_handler"
+	"github.com/jva44ka/ozon-simulator-go-cart/internal/app/handlers/remove_products_from_cart_handler"
 	httpSwagger "github.com/swaggo/http-swagger"
 
 	cartItemsRepositoryPkg "github.com/jva44ka/ozon-simulator-go-cart/internal/domain/cart_items/repository"
@@ -84,6 +85,7 @@ func boostrapHandler(config *config.Config) (http.Handler, error) {
 	mx := http.NewServeMux()
 	mx.Handle("GET /user/{user_id}/cart", get_cart_items_by_user_id_handler.NewGetCartItemsByUserIdHandler(cartService))
 	mx.Handle("POST /user/{user_id}/cart/{sku_id}", add_products_to_cart_handler.NewAddProductsToCartHandler(cartService))
+	mx.Handle("DELETE /user/{user_id}/cart/{sku_id}", remove_products_from_cart_handler.NewRemoveProductsFromCartHandler(cartService))
 	mx.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	middleware := middlewares.NewTimerMiddleware(mx)

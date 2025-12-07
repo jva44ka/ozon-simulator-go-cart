@@ -97,3 +97,22 @@ RETURNING
 
 	return &result, nil
 }
+
+func (r *PgxCartItemRepository) RemoveCartItem(ctx context.Context, userId uuid.UUID, sku uint64) error {
+	const query = `
+DELETE FROM
+    cart_items
+WHERE 
+    user_id = $1
+	AND sku_id = $2;`
+
+	err := pgx.BeginTxFunc(ctx, r.pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, query, userId, sku)
+		return err
+	})
+	if err != nil {
+		return fmt.Errorf("failed to insert cart item: %w", err)
+	}
+
+	return nil
+}
