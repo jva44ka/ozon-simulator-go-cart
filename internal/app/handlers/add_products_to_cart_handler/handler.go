@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
-	http2 "github.com/jva44ka/ozon-simulator-go-cart/pkg/http"
+	httpPkg "github.com/jva44ka/ozon-simulator-go-cart/pkg/http"
 )
 
 type CartService interface {
@@ -23,13 +23,28 @@ func NewAddProductsToCartHandler(cartService CartService) *AddProductsToCartHand
 	return &AddProductsToCartHandler{cartService: cartService}
 }
 
+// @Summary      Добавить товар в корзину
+// @Description  Идентификатором товара является числовой идентификатор SKU.
+// Метод добавляет указанный товар в корзину определенного пользователя.
+// Каждый пользователь имеет числовой идентификатор userID.
+// При добавлении в корзину проверяем, что товар существует в специальном сервисе.
+// Один и тот же товар может быть добавлен в корзину несколько раз, при этом количество экземпляров складывается.
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Param        user_id  path  string  true  "Токен пользователя"
+// @Param        sku_id   path  uint64  true  "SKU товара"
+// @Param        body     body  AddProductToCartRequest  true  "Тело запроса с количеством товаров"
+// @Success      200  {object}  AddProductToCartResponse
+// @Failure      404  {object}  httpPkg.ErrorResponse
+// @Router       /user/{user_id}/cart/{sku_id} [post]
 func (h *AddProductsToCartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	skuRaw := r.PathValue("sku_id")
 	sku, err := strconv.Atoi(skuRaw)
 	if err != nil {
-		if err = http2.NewErrorResponse(w, http.StatusBadRequest, "sku must be more than zero"); err != nil {
+		if err = httpPkg.NewErrorResponse(w, http.StatusBadRequest, "sku must be more than zero"); err != nil {
 			fmt.Println("json.Encode failed ", err)
 
 			return
@@ -39,7 +54,7 @@ func (h *AddProductsToCartHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	}
 
 	if sku < 1 {
-		if err = http2.NewErrorResponse(w, http.StatusBadRequest, "sku must be more than zero"); err != nil {
+		if err = httpPkg.NewErrorResponse(w, http.StatusBadRequest, "sku must be more than zero"); err != nil {
 			fmt.Println("json.Encode failed ", err)
 
 			return
@@ -51,7 +66,7 @@ func (h *AddProductsToCartHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	userIdRaw := r.PathValue("user_id")
 	userId, err := uuid.Parse(userIdRaw)
 	if err != nil {
-		if err = http2.NewErrorResponse(w, http.StatusBadRequest, "user_id must be valid uuid"); err != nil {
+		if err = httpPkg.NewErrorResponse(w, http.StatusBadRequest, "user_id must be valid uuid"); err != nil {
 			fmt.Println("json.Encode failed ", err)
 
 			return
@@ -63,7 +78,7 @@ func (h *AddProductsToCartHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	var request AddProductToCartRequest
 
 	if err = json.NewDecoder(r.Body).Decode(&request); err != nil {
-		if err = http2.NewErrorResponse(w, http.StatusBadRequest, err.Error()); err != nil {
+		if err = httpPkg.NewErrorResponse(w, http.StatusBadRequest, err.Error()); err != nil {
 			fmt.Println("json.Encode failed ", err)
 
 			return
@@ -74,7 +89,7 @@ func (h *AddProductsToCartHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 
 	err = h.cartService.AddProduct(r.Context(), userId, uint64(sku), request.Count)
 	if err != nil {
-		if err = http2.NewErrorResponse(w, http.StatusInternalServerError, err.Error()); err != nil {
+		if err = httpPkg.NewErrorResponse(w, http.StatusInternalServerError, err.Error()); err != nil {
 			return
 		}
 

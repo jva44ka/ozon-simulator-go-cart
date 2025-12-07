@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jva44ka/ozon-simulator-go-cart/internal/domain/model"
-	http2 "github.com/jva44ka/ozon-simulator-go-cart/pkg/http"
+	httpPkg "github.com/jva44ka/ozon-simulator-go-cart/pkg/http"
 )
 
 type CartService interface {
@@ -23,11 +23,22 @@ func NewGetCartItemsByUserIdHandler(cartService CartService) *GetReviewsBySkuHan
 	return &GetReviewsBySkuHandler{cartService: cartService}
 }
 
+// @Summary      Получить содержимое корзины
+// @Description  Метод возвращает содержимое корзины пользователя на текущий момент.
+// Если корзины у переданного пользователя нет, либо она пуста, следует вернуть 404 код ответа.
+// Товары в корзине упорядочены в порядке возрастания sku.
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Param        user_id  path  string  true  "Токен пользователя"
+// @Success      200  {object}  CartItemResponse
+// @Failure      404  {object}  httpPkg.ErrorResponse
+// @Router       /user/{user_id}/cart [get]
 func (h *GetReviewsBySkuHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	userIdRaw := r.PathValue("user_id")
 	userId, err := uuid.Parse(userIdRaw)
 	if err != nil {
-		if err = http2.NewErrorResponse(w, http.StatusBadRequest, "user_id must be valid uuid"); err != nil {
+		if err = httpPkg.NewErrorResponse(w, http.StatusBadRequest, "user_id must be valid uuid"); err != nil {
 			fmt.Println("json.Encode failed ", err)
 
 			return
@@ -37,7 +48,7 @@ func (h *GetReviewsBySkuHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	}
 
 	if userId == uuid.Nil {
-		if err = http2.NewErrorResponse(w, http.StatusBadRequest, "userId must be not Nil"); err != nil {
+		if err = httpPkg.NewErrorResponse(w, http.StatusBadRequest, "userId must be not Nil"); err != nil {
 			fmt.Println("json.Encode failed ", err)
 
 			return
@@ -48,7 +59,7 @@ func (h *GetReviewsBySkuHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 
 	cartItems, err := h.cartService.GetItemsByUserId(r.Context(), userId)
 	if err != nil {
-		if err = http2.NewErrorResponse(w, http.StatusInternalServerError, err.Error()); err != nil {
+		if err = httpPkg.NewErrorResponse(w, http.StatusInternalServerError, err.Error()); err != nil {
 			return
 		}
 
