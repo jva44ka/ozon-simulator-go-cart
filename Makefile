@@ -23,7 +23,7 @@ up-migrations-bin:
 	$(LOCAL_BIN)/goose -dir migrations postgres "postgresql://user:1234@127.0.0.1:5432/ozon_simulator_go_products?sslmode=disable" up
 
 up-migrations:
-	goose -dir migrations postgres "postgresql://postgres:1234@127.0.0.1:5432/ozon_simulator_go_products?sslmode=disable" up
+	goose -dir migrations postgres "postgresql://postgres:1234@127.0.0.1:5432/ozon_simulator_go_cart?sslmode=disable" up
 
 compile-sql-bin:
 	$(LOCAL_BIN)/sqlc generate
